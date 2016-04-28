@@ -100,7 +100,7 @@ static pthread_mutex_t vol_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 // default buffer size
 // needs to be a power of 2 because of the way BUFIDX(seqno) works
-#define BUFFER_FRAMES 512
+#define BUFFER_FRAMES 1024
 #define MAX_PACKET 2048
 
 // DAC buffer occupancy stuff
