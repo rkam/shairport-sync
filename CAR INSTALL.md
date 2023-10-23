@@ -201,10 +201,15 @@ or
 ```
 # systemctl disable dhcpcd
 ```
+Now you should also disable the `wpa_supplicant` service.
+
+```
+# systemctl disable wpa_supplicant
+```
 
 From this point on, at least on the Raspberry Pi, if you were to power off and reboot the machine, it would not reconnect to your network. Instead, it would act as the WiFi base station you have configured with `hostapd` and `isc-dhcp-server`. 
 
-Next, the WiFi credentials you used to connect to the initial network (e.g. your home network) will have been stored in the system in plain text. This is convenient for when you want to reconnect to update (see later), but if you wish to delete them for any reason, they will be in `/etc/wpa_supplicant/wpa_supplicant.conf`
+**Note:** The WiFi credentials you used to connect to the initial network (e.g. your home network) will have been stored in the system in plain text. This is convenient for when you want to reconnect to update (see later), but if you wish to delete them for any reason, they will be in `/etc/wpa_supplicant/wpa_supplicant.conf`
 
 When you are finished (including any optional steps below), carefully power down the machine before unplugging it from power:
 ```
@@ -237,20 +242,16 @@ So, take the following steps:
 1. If it's a Raspberry Pi and you have enabled the Read-only mode, you must take the device out of Read-only mode:  
 Run `sudo raspi-config` and then choose `Performance Options` > `Overlay Filesystem` and choose to disable the overlay filesystem and to set the boot partition not to be write-protected. This is so that changes can be written to the file system; you can make the filesystem read-only again later. Save the changes and reboot the system.
 
-2. Undo a number of modification you may have made during previous installations.
-   1. Remove a possible modification from a file. If there is a file called `/etc/dhcpcd.conf` and if the first line reads:
-      ```
-      denyinterfaces wlan0
-      ```
-      then delete that line or comment it out -- it it no longer needed going forward.
-      If the file `/etc/dhcpcd.conf` doesn't exist, or the first line is not `denyinterfaces wlan0` as given here, then you don't need to do anything.
+2. Undo a modification you may have made during previous installations.
+
+   Remove a possible modification from a file. If there is a file called `/etc/dhcpcd.conf` and if the first line reads:
+   ```
+   denyinterfaces wlan0
+   ```
+   then delete that line or comment it out -- it it no longer needed going forward.
+   If the file `/etc/dhcpcd.conf` doesn't exist, or if the first line is not `denyinterfaces wlan0` as given here, then you don't need to do anything.
       
-      (The reason for this suggestion is that a simpler way is now used to prevent the `dhcpcd` service from trying to manage the interface -- the `dhcpcd` service is now completely disabled.)
-   3. Make sure you disable the `wpa_supplicant` service:
-      ```
-      # systemctl disable wpa_supplicant
-      ```
-      (The reason for this suggestion is that previous advice may result in the `wpa_supplicant` service continuing to run even when the `dhcpcd` or `NetworkManager` has been disabled. This can cause connectivity problems.)
+   (The reason for this suggestion is that a simpler way is now used to prevent the `dhcpcd` service from trying to manage the interface -- the `dhcpcd` service is now completely disabled.)
 
 4. Re-enable either `NetworkManager` or `dhcpcd` as appropriate:
    ```
@@ -260,6 +261,8 @@ Run `sudo raspi-config` and then choose `Performance Options` > `Overlay Filesys
    ```
    # systemctl enable dhcpcd
    ```
+   (Just FYI, even though the `wpa_supplicant` service has previously been disabled from starting automatically, it will be turned on by `NetworkManager` or `dhcpcd` after reboot.)
+   
 5. If you had disabled the `systemd-timesyncd` service as suggested in the "Optimise startup time -- Raspberry Pi Specific" section, you need to temporarily re-enable it:   
    ```
    # systemctl enable systemd-timesyncd
@@ -291,11 +294,15 @@ When you are finished updating, you need to undo the temporary changes you made 
    ```
    # systemctl disable dhcpcd
    ```
-2. Next, if you had temporarily re-enabled services that are normally disabled, then it's time to disable them again:
+2. Also, ensure that the `wpa_supplicant` service is disabled.
+   ```
+   # systemctl disable wpa_supplicant
+   ```
+3. Next, if you had temporarily re-enabled services that are normally disabled, then it's time to disable them again:
    ```
    # systemctl disable systemd-timesyncd 
    ```
-3. Edit `/etc/rc.local` to perform the entire script before exiting, so that it enables the WiFi access point and starts Shairport Sync. Do this by commenting out the line:
+4. Edit `/etc/rc.local` to perform the entire script before exiting, so that it enables the WiFi access point and starts Shairport Sync. Do this by commenting out the line:
    ```
    exit 0 # uncomment this line to exit the script now
    ```
@@ -303,8 +310,8 @@ When you are finished updating, you need to undo the temporary changes you made 
    ```
    # exit 0 # uncomment this line to exit the script now
    ```
-Save the changes.
+   Save the changes.
 
-4. Reboot. The system should start as it would if it was in the car.
+5. Reboot. The system should start as it would if it was in the car.
 
 5. If the device is a Raspberry Pi and you wish to make the file system read-only, connect to the system, run `sudo raspi-config` and then choose `Performance Options` > `Overlay Filesystem`. In there, choose to enable the overlay filesystem, and to set the boot partition to be write-protected. Do a final reboot and check that everyting is in order.
