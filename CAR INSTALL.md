@@ -9,7 +9,7 @@ Please note that Android phones and tablets can not, so far, do this trick of us
 
 ## Example
 
-If you are updating an existing installation, please refer to the Updating section below.
+If you are updating an existing installation, please refer to the [updating](#updating) section below.
 
 In this example, a Raspberry Pi Zero 2 W and a Pimoroni PHAT DAC are used. Shairport Sync will be built for AirPlay 2 operation, but you can build it for "classic" AirPlay (aka AirPlay 1) operation if you prefer. A Pi Zero W is powerful enough for classic AirPlay.
 
@@ -100,8 +100,6 @@ Two `general` settings are worth noting.
 The `alsa` settings are for the Pimoroni PHAT – it does not have a hardware mixer, so no `mixer_control_name` is given.
 
 The DAC's 32-bit capability is automatically selected if available, so there is no need to set it here. Similarly, since `soxr` support is included in the build, `soxr` interpolation will be automatically enabled if the device is fast enough.
-
-Note that if you're upgrading the operating system to e.g. from Bullseye to Bookworm, the names and index numbers of the output devices may change, and the names of the mixer controls may also change. You can use [`sps-alsa-explore`](https://github.com/mikebrady/sps-alsa-explore) to discover device names and mixer names.
 
 ### Extra Packages
 A number of packages to enable the Pi to work as a WiFi base station are needed:
@@ -215,7 +213,7 @@ When you are finished (including any optional steps below), carefully power down
 ```
 # poweroff
 ```
-### Optional: Optimise startup time – Raspberry Pi Specific
+#### Optional: Optimise startup time – Raspberry Pi Specific
 These optional steps have been tested on a Raspberry Pi only. They have not been tested on other systems.
 Some services are not necessary for this setup. These commands disable them:
 ```
@@ -224,7 +222,7 @@ Some services are not necessary for this setup. These commands disable them:
 # systemctl disable triggerhappy
 # systemctl disable dphys-swapfile
 ```
-### Optional: Read-only mode – Raspberry Pi Specific
+#### Optional: Read-only mode – Raspberry Pi Specific
 This optional step is applicable to a Raspberry Pi only. Run `sudo raspi-config` and then choose `Performance Options` > `Overlay Filesystem` and choose to enable the overlay filesystem, and to set the boot partition to be write-protected. 
 
 ### Ready
@@ -237,7 +235,9 @@ When the power source is switched on, typically when you start the car, it will 
 ## Updating
 From time to time, you may wish to update this installation. Assuming you haven't deleted your original WiFi network credentials, the easiest thing is to temporarily reconnect to the network you used when you created the system. To do that, you have to temporarily undo the "Final Steps" and some of the "Raspberry Pi Specific" steps you used. This will enable you to connect your device back to the network it was created on. You should then be able to update the operating system and libraries in the normal way and then update Shairport Sync.
 
-So, take the following steps:
+Note that if you're upgrading the operating system to e.g. from Bullseye to Bookworm, the names and index numbers of the output devices may change, and the names of the mixer controls may also change. You can use [`sps-alsa-explore`](https://github.com/mikebrady/sps-alsa-explore) to discover device names and mixer names.
+
+To update, take the following steps:
 ### Temporarily reconnect to the original network and update
 1. If it's a Raspberry Pi and you have enabled the Read-only mode, you must take the device out of Read-only mode:  
 Run `sudo raspi-config` and then choose `Performance Options` > `Overlay Filesystem` and choose to disable the overlay filesystem and to set the boot partition not to be write-protected. This is so that changes can be written to the file system; you can make the filesystem read-only again later. Save the changes and reboot the system.
