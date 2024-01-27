@@ -1,6 +1,6 @@
 ARFLAGS = cr
 
-man_MANS = $(top_srcdir)/man/shairport-sync.7
+man_MANS = $(top_srcdir)/man/shairport-sync.1
 
 lib_pair_ap_a_CFLAGS = -Wall -g -DCONFIG_GCRYPT -pthread
 lib_tinyhttp_a_CFLAGS = -pthread
