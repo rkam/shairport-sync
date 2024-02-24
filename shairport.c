@@ -2491,7 +2491,7 @@ int main(int argc, char **argv) {
 #ifdef CONFIG_METADATA
   debug(1, "metadata enabled is %d.", config.metadata_enabled);
   debug(1, "metadata pipename is \"%s\".", config.metadata_pipename);
-  debug(1, "metadata socket address is \"%s\" port %d.", config.metadata_sockaddr,
+  debug(1, "metadata socket address is \"%s\" port %d.", strnull(config.metadata_sockaddr),
         config.metadata_sockport);
   debug(1, "metadata socket packet size is \"%d\".", config.metadata_sockmsglength);
   debug(1, "get-coverart is %d.", config.get_coverart);
