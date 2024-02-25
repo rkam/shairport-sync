@@ -2475,7 +2475,7 @@ int main(int argc, char **argv) {
   debug(1, "allow a session to be interrupted: %d.", config.allow_session_interruption);
   debug(1, "busy timeout time is %d.", config.timeout);
   debug(1, "drift tolerance is %f seconds.", config.tolerance);
-  debug(1, "password is \"%s\".", strnull(config.password));
+  debug(1, "password is %s.", config.password == NULL ? "not set" : "set (omitted)");
   debug(1, "default airplay volume is: %.6f.", config.default_airplay_volume);
   debug(1, "high threshold airplay volume is: %.6f.", config.high_threshold_airplay_volume);
   if (config.limit_to_high_volume_threshold_time_in_minutes == 0)
