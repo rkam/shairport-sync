@@ -3044,7 +3044,8 @@ void handle_setup_2(rtsp_conn_info *conn, rtsp_message *req, rtsp_message *resp)
                 // debug(1, "Interface index %d, name: \"%s\"",if_nametoindex(iap->ifa_name),
                 // iap->ifa_name);
                 if ((iap->ifa_addr) && (iap->ifa_netmask) && (iap->ifa_flags & IFF_UP) &&
-                    ((iap->ifa_flags & IFF_LOOPBACK) == 0)) {
+                    ((iap->ifa_flags & IFF_LOOPBACK) == 0) &&
+		    (config.interface == NULL || (strcmp(config.interface, iap->ifa_name) == 0))) {
                   char buf[INET6_ADDRSTRLEN + 1]; // +1 for a NUL
                   memset(buf, 0, sizeof(buf));
                   if (iap->ifa_addr->sa_family == AF_INET6) {
