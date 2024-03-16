@@ -21,6 +21,10 @@ struct mosquitto *global_mosq = NULL;
 char *topic = NULL;
 int connected = 0;
 
+// track active/playing state
+int is_active = 0;
+int is_playing = 0;
+
 // mosquitto logging
 void _cb_log(__attribute__((unused)) struct mosquitto *mosq, __attribute__((unused)) void *userdata,
              int level, const char *str) {
@@ -167,12 +171,16 @@ void mqtt_process_metadata(uint32_t type, uint32_t code, char *data, uint32_t le
     } else if (type == 'ssnc') {
       switch (code) {
       case 'abeg':
+        is_active = 1;
+        mqtt_publish("is_active", "1", 1);
         mqtt_publish("active_start", data, length);
         break;
       case 'acre':
         mqtt_publish("active_remote_id", data, length);
         break;
       case 'aend':
+        is_active = 0;
+        mqtt_publish("is_active", "0", 1);
         mqtt_publish("active_end", data, length);
         break;
       case 'asal':
@@ -210,9 +218,13 @@ void mqtt_process_metadata(uint32_t type, uint32_t code, char *data, uint32_t le
         mqtt_publish("output_frame_rate", data, length);
         break;
       case 'pbeg':
+        is_playing = 1;
+        mqtt_publish("is_playing", "1", 1);
         mqtt_publish("play_start", data, length);
         break;
       case 'pend':
+        is_playing = 0;
+        mqtt_publish("is_playing", "0", 1);
         mqtt_publish("play_end", data, length);
         break;
       case 'pfls':
@@ -224,6 +236,8 @@ void mqtt_process_metadata(uint32_t type, uint32_t code, char *data, uint32_t le
         }
         break;
       case 'prsm':
+        is_playing = 1;
+        mqtt_publish("is_playing", "1", 1);
         mqtt_publish("play_resume", data, length);
         break;
       case 'pvol':
