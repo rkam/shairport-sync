@@ -101,6 +101,7 @@ void on_connect(struct mosquitto *mosq, __attribute__((unused)) void *userdata,
 void send_autodiscovery_messages(struct mosquitto *mosq) {
     const char *device_name = config.service_name;
     const char *device_id = config.airplay_device_id ? config.airplay_device_id : config.service_name;
+    const char *device_id_no_colons = str_replace(device_id, ":", "");
     const char *sw_version = get_version_string();
     const char *model = "shairport-sync";
     const char *model_friendly = "Shairport Sync";
@@ -189,9 +190,9 @@ void send_autodiscovery_messages(struct mosquitto *mosq) {
         bool is_binary_sensor = (strcmp(sensors[i], "active") == 0 || strcmp(sensors[i], "playing") == 0);
         bool is_volume_sensor = strcmp(sensors[i], "volume") == 0;
 
-        snprintf(topic, sizeof(topic), "%s/%ssensor/%s/%s_%s/config",
+        snprintf(topic, sizeof(topic), "%s/%ssensor/%s_%s/%s/config",
             autodiscovery_prefix, is_binary_sensor ? "binary_" : "",
-            model, device_name, sensors[i]);
+            model, device_id_no_colons, sensors[i]);
 
         snprintf(id_string, sizeof(id_string), "%s_%s_%s", model, device_name, sensors[i]);
 
