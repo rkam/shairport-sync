@@ -94,6 +94,52 @@ void on_connect(struct mosquitto *mosq, __attribute__((unused)) void *userdata,
     snprintf(remotetopic, strlen(config.mqtt_topic) + 8, "%s/remote", config.mqtt_topic);
     mosquitto_subscribe(mosq, NULL, remotetopic, 0);
   }
+
+  // send autodiscovery messages if enabled
+  if (config.mqtt_enable_autodiscovery && config.mqtt_publish_parsed) {
+    send_autodiscovery_messages(mosq);
+  }
+}
+
+void send_autodiscovery_messages(struct mosquitto *mosq) {
+    const char *autodiscovery_prefix = (config.mqtt_autodiscovery_prefix != NULL) ?
+        config.autodiscovery_prefix : "homeassistant";
+    char base_topic[256];
+    snprintf(base_topic, sizeof(base_topic), "%s/sensor/shairport-sync-", autodiscovery_prefix);
+
+    char full_topic[256];
+    char payload[1024];
+    const char *device_name = config.service_name;
+
+    const char *sensors[] = {
+        "artist", "album", "title", "genre", "format", "track_id", 
+        "client_ip", "client_name", "volume", "is_active", "is_playing", NULL
+    };
+    // Human-readable names
+    const char *sensor_names[] = {
+        "Artist", "Album", "Title", "Genre", "Format", "Track ID", 
+        "Client IP", "Client Name", "Volume", "Is Active", "Is Playing", NULL
+    };
+
+    for (int i = 0; sensors[i] != NULL; i++) {
+        snprintf(full_topic, sizeof(full_topic), "%s%s/config", base_topic, sensors[i]);
+        snprintf(payload, sizeof(payload),
+                 "{\n"
+                 "  \"name\": \"%s\",\n"
+                 "  \"state_topic\": \"%s/%s\",\n"
+                 "  \"icon\": \"mdi:music-note\",\n"
+                 "  \"unique_id\": \"shairport-sync-%s\",\n"
+                 "  \"device\": {\n"
+                 "    \"identifiers\": [\"shairport-sync\"],\n"
+                 "    \"name\": \"%s\",\n"
+                 "    \"model\": \"Shairport-Sync\",\n"
+                 "    \"manufacturer\": \"shairport-sync\"\n"
+                 "  }\n"
+                 "}", sensor_names[i], config.mqtt_topic, sensors[i], sensors[i], device_name);
+
+        mosquitto_publish(mosq, NULL, full_topic, strlen(payload), payload, 0, true);
+        debug(2, "[MQTT Autodiscovery]: Published autodiscovery for %s", sensor_names[i]);
+    }
 }
 
 // helper function to publish under a topic and automatically append the main topic
