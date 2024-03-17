@@ -102,43 +102,92 @@ void on_connect(struct mosquitto *mosq, __attribute__((unused)) void *userdata,
 }
 
 void send_autodiscovery_messages(struct mosquitto *mosq) {
-    const char *autodiscovery_prefix = (config.mqtt_autodiscovery_prefix != NULL) ?
-        config.autodiscovery_prefix : "homeassistant";
-    char base_topic[256];
-    snprintf(base_topic, sizeof(base_topic), "%s/sensor/shairport-sync-", autodiscovery_prefix);
-
-    char full_topic[256];
-    char payload[1024];
     const char *device_name = config.service_name;
+    const char *sw_version = get_version_string();
+    const char *model = "shairport-sync";
+    const char *manufacturer = "Mike Brady";
+    const char *autodiscovery_prefix = (config.mqtt_autodiscovery_prefix != NULL) ?
+        config.mqtt_autodiscovery_prefix : "homeassistant";
 
+    char topic[512];
+    char payload[1024];
+    char device_payload[512];
+
+    snprintf(device_payload, sizeof(device_payload),
+        "\"device\": {"
+            "\"identifiers\": [\"%s\"],"
+            "\"name\": \"%s\","
+            "\"model\": \"%s\","
+            "\"sw_version\": \"%s\","
+            "\"manufacturer\": \"%s\""
+        "}",
+        model, device_name, model, sw_version, manufacturer);
+
+    // when adding sensors here, be sure to also update sensor_names and icons below!
     const char *sensors[] = {
-        "artist", "album", "title", "genre", "format", "track_id", 
-        "client_ip", "client_name", "volume", "is_active", "is_playing", NULL
+        "artist",
+        "album",
+        "title",
+        "genre",
+        "format",
+        "track_id",
+        "client_ip",
+        "client_name",
+        "volume",
+        "is_active",
+        "is_playing",
+        NULL
     };
-    // Human-readable names
+
     const char *sensor_names[] = {
-        "Artist", "Album", "Title", "Genre", "Format", "Track ID", 
-        "Client IP", "Client Name", "Volume", "Is Active", "Is Playing", NULL
+        "Artist",
+        "Album",
+        "Title",
+        "Genre",
+        "Format",
+        "Track ID", 
+        "Client IP",
+        "Client Name",
+        "Volume",
+        "Is Active",
+        "Is Playing"
+    };
+
+    const char *icons[] = {
+        "mdi:account-music", // artist
+        "mdi:album", // album
+        "mdi:music", // title
+        "mdi:music-box-multiple", // genre
+        "mdi:file", // format
+        "mdi:identifier", // track ID
+        "mdi:ip", // client IP
+        "mdi:cellphone-wireless", // client name
+        "mdi:volume-high", // volume
+        "mdi:play-box-multiple", // is active
+        "mdi:play-box-multiple-outline" // is playing
     };
 
     for (int i = 0; sensors[i] != NULL; i++) {
-        snprintf(full_topic, sizeof(full_topic), "%s%s/config", base_topic, sensors[i]);
-        snprintf(payload, sizeof(payload),
-                 "{\n"
-                 "  \"name\": \"%s\",\n"
-                 "  \"state_topic\": \"%s/%s\",\n"
-                 "  \"icon\": \"mdi:music-note\",\n"
-                 "  \"unique_id\": \"shairport-sync-%s\",\n"
-                 "  \"device\": {\n"
-                 "    \"identifiers\": [\"shairport-sync\"],\n"
-                 "    \"name\": \"%s\",\n"
-                 "    \"model\": \"Shairport-Sync\",\n"
-                 "    \"manufacturer\": \"shairport-sync\"\n"
-                 "  }\n"
-                 "}", sensor_names[i], config.mqtt_topic, sensors[i], sensors[i], device_name);
+        bool is_binary_sensor = (strcmp(sensors[i], "is_active") == 0 || strcmp(sensors[i], "is_playing") == 0);
 
-        mosquitto_publish(mosq, NULL, full_topic, strlen(payload), payload, 0, true);
-        debug(2, "[MQTT Autodiscovery]: Published autodiscovery for %s", sensor_names[i]);
+        snprintf(topic, sizeof(topic), "%s/%ssensor/%s/%s_%s%s/config",
+            autodiscovery_prefix, is_binary_sensor ? "binary_" : "",
+            model, model, device_name, sensors[i]);
+
+        snprintf(payload, sizeof(payload),
+            "{"
+                "\"name\": \"%s\","
+                "\"state_topic\": \"%s/%s\","
+                "\"icon\": \"%s\","
+                "\"unique_id\": \"%s_%s\","
+                "%s%s"
+            "}",
+            sensor_names[i], config.mqtt_topic, sensors[i], icons[i], device_name, sensors[i],
+            is_binary_sensor ? "\"payload_on\": \"1\",\"payload_off\": \"0\"," : "",
+            device_payload);
+
+        mosquitto_publish(mosq, NULL, topic, strlen(payload), payload, 0, true);
+        debug(2, "[MQTT]: Published autodiscovery for %s", device_name)
     }
 }
 
