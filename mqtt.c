@@ -100,6 +100,7 @@ void on_connect(struct mosquitto *mosq, __attribute__((unused)) void *userdata,
 // function to send autodiscovery messages for Home Assistant
 void send_autodiscovery_messages(struct mosquitto *mosq) {
     const char *device_name = config.service_name;
+    const char *device_id = config.airplay_device_id ? config.airplay_device_id : config.service_name;
     const char *sw_version = get_version_string();
     const char *model = "shairport-sync";
     const char *model_friendly = "Shairport Sync";
@@ -120,7 +121,7 @@ void send_autodiscovery_messages(struct mosquitto *mosq) {
             "\"sw_version\": \"%s\","
             "\"manufacturer\": \"%s\""
         "}",
-        model, device_name, model_friendly, sw_version, manufacturer);
+        device_id, device_name, model_friendly, sw_version, manufacturer);
 
     // when adding sensors here, be sure to also update sensor_names and icons below!
     const char *sensors[] = {
