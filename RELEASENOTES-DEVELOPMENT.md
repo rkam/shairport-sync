@@ -17,7 +17,7 @@ Version 4.3.3-dev-46-g6eba4fd8
 Version 4.3.3-dev-43-g5922f9d1
 ===
 **Enhancement**
-* If a network interface is specified in the configuration file, limit the addresses used for PTP to to that network interface only. Thanks to [Ryan Mounce](https://github.com/rmounce) for the [PR](https://github.com/mikebrady/shairport-sync/pull/1813).
+* If a network interface is specified in the configuration file, limit the addresses used for PTP to that network interface only. Thanks to [Ryan Mounce](https://github.com/rmounce) for the [PR](https://github.com/mikebrady/shairport-sync/pull/1813).
 
 Version 4.3.3-dev-41-g0f07107c
 ===
