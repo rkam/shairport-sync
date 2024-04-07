@@ -1,3 +1,8 @@
+Version 4.3.3-dev-49-gb5ea2b10
+===
+**MQTT Documentation Updates**
+* Thanks to [Craig Lockwood](https://github.com/1ockwood) for [improvements](https://github.com/mikebrady/shairport-sync/pull/1838) to the [MQTT](MQTT.md) document. The `binary_sensor` example has been updated and the rest of the document has been edited for clarity, length and consistency. 
+
 Version 4.3.3-dev-46-g6eba4fd8
 ===
 **Enhancement**
