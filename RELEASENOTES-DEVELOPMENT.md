@@ -10,7 +10,7 @@ Version 4.3.3-dev-46-g6eba4fd8
 
   For example, if you run two instances of Shairport Sync, one built for Classic Airplay and the other for AirPlay 2, MacOS and iOS will recognize only the AirPlay 2 instance.
 
-  Without the enhancment, MacOS and iOS will detect both Classic AirPlay and AirPlay 2 devices at the same time. (TuneBlade recognised only the Classic Airplay device, since it is not compatible with AirPlay 2.)
+  Without the enhancement, MacOS and iOS will detect both Classic AirPlay and AirPlay 2 devices at the same time. (TuneBlade recognised only the Classic Airplay device, since it is not compatible with AirPlay 2.)
 
   Thanks to [Oleh Kuzhylnyi](https://github.com/kuzhylol) for the [PR](https://github.com/mikebrady/shairport-sync/pull/1831).
 
