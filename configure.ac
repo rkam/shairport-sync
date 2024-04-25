@@ -288,7 +288,13 @@ AM_CONDITIONAL([USE_SNDIO], [test "x$with_sndio" = "xyes"])
 AC_ARG_WITH(ao, [AS_HELP_STRING([--with-ao],[choose AO (Audio Output?) API support. N.B. no synchronisation -- so underflow or overflow is inevitable!])])
 if test "x$with_ao" = "xyes" ; then
   AC_DEFINE([CONFIG_AO], 1, [Include an AO-compatible  audio backend.])
-  AC_CHECK_LIB([ao], [ao_initialize], , AC_MSG_ERROR(AO support requires the ao library -- libao-dev suggested))
+  if  test "x${with_pkg_config}" = xyes ; then
+    PKG_CHECK_MODULES(
+        [AO], [ao > 1.0.0],
+        [LIBS="${AO_LIBS} ${LIBS}"], [AC_MSG_ERROR(AO support requires the ao library -- libao-dev suggested)])
+  else
+    AC_CHECK_LIB([ao], [ao_initialize], , AC_MSG_ERROR(AO support requires the ao library -- libao-dev suggested))
+  fi
 fi
 AM_CONDITIONAL([USE_AO], [test "x$with_ao" = "xyes"])
 
