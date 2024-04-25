@@ -1,7 +1,12 @@
+Version 4.3.3-dev-61-gcc963bf0
+==
+**Enhancement**
+* Use `macos-13` instead of `macos-latest` as the `github` runner for the Mac-compatible build check.
+  
 Version 4.3.3-dev-58-g85f8ea12
 ==
 **Enhancement**
-* Use `PKG_CHECK_MODULES`, if it's available,to find the `ao` lib. Disable the macOS build `github` action check, as it no longer can find `dns_sd` functions in the `macos-latest` (i.e. macOS 13) runner, even though it is still visible in macOS 13.3.5.
+* Use `PKG_CHECK_MODULES`, if it's available,to find the `ao` lib. 
 
 Version 4.3.3-dev-53-gc0f5112b
 ===
