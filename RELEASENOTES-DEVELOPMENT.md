@@ -6,7 +6,7 @@ Version 4.3.3-dev-61-gcc963bf0
 Version 4.3.3-dev-58-g85f8ea12
 ==
 **Enhancement**
-* Use `PKG_CHECK_MODULES`, if it's available,to find the `ao` lib. 
+* Use `PKG_CHECK_MODULES`, if it's available, to find the `ao` lib. 
 
 Version 4.3.3-dev-53-gc0f5112b
 ===
