@@ -1,3 +1,8 @@
+Version 4.3.3-dev-58-g85f8ea12
+==
+**Enhancement**
+* Use `PKG_CHECK_MODULES`, if it's available,to find the `ao` lib. Disable the mac build github action check, as it no longer can find the dns_sd library in the macos-latest (macOS 13) runner, even though it is still visible in macOS 13.3.5.
+
 Version 4.3.3-dev-53-gc0f5112b
 ===
 **Bug Fix**
