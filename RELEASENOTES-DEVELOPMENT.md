@@ -1,3 +1,9 @@
+Version 4.3.3-dev-66-gb054c004
+==
+**Enhancement**
+* Simplify the macOS build check.
+* Add some extra `CFLAG` settings to `configure.ac` for `libconfig`, `libpopt`, `openssl` and `libcrypto` to enable compilation on macOS without extra flag settings.
+  
 Version 4.3.3-dev-61-gcc963bf0
 ==
 **Enhancement**
