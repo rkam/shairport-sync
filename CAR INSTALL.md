@@ -228,6 +228,8 @@ When you are finished, carefully power down the machine before unplugging it fro
 ```
 # poweroff
 ```
+Note: doing a `reboot` here doesn't seem to work properly -- it really does seem necessary to power off.
+
 ### Ready
 Install the Raspberry Pi in your car. It should be powered from a source that is switched off when you leave the car, otherwise the slight current drain will eventually flatten the car's battery.
 
