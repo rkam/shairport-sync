@@ -1,3 +1,7 @@
+Version 4.3.4-dev-10-gaade1b39
+==
+**Docker Enhancement -- Continued**
+* Move the `ulimit -n ...` command to set the maximum file limit from the `01-startup/script.sh` (where it didn't seem to have any effect) to the `02-dbus/run`. Thanks to [rp86](https://github.com/rp86) for the feedback.
 Version 4.3.4-dev-8-g111e247b
 ==
 **Docker Enhancement**
