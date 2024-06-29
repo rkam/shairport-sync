@@ -2039,8 +2039,8 @@ int main(int argc, char **argv) {
   config.debugger_show_file_and_line =
       1; // by default, log the file and line of the originating message
   config.debugger_show_relative_time =
-      1;                // by default, log the  time back to the previous debug message
-  config.timeout = 120; // this number of seconds to wait for [more] audio before switching to idle.
+      1;                // by default, log the time back to the previous debug message
+  config.timeout = 60; // wait this number of seconds to wait for a dropped RTSP connection to come back before declaring it lost.
   config.buffer_start_fill = 220;
 
   config.resync_threshold = 0.050;   // default
