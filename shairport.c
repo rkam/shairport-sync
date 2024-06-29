@@ -2048,7 +2048,6 @@ int main(int argc, char **argv) {
   config.tolerance = 0.002;
 
 #ifdef CONFIG_AIRPLAY_2
-  config.timeout = 0; // disable watchdog
   config.port = 7000;
 #else
   config.port = 5000;
