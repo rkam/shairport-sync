@@ -1,3 +1,15 @@
+Version 4.3.4-dev-21-g105299a7
+==
+**Bug Fix**
+* Fixed a bug that prevented Shairport Sync from recovering cleanly if a player disconnected without warning. The problem was that the player thread would not respond to cancel request. Fixed by moving a `pthreadtestcancel()` call to the innermost loop.
+  
+  Associated with this, some obsolete watchdog code has been removed.
+  
+  Also, the `session_timeout` default has been changed from 120 seconds to 60 seconds.
+  
+  Thanks to [Tobias Huttinger](https://github.com/tobiashuttinger) for the bug report -- Issue [#1870](https://github.com/mikebrady/shairport-sync/issues/1870).
+  
+
 Version 4.3.4-dev-13-gc064b8ba
 ==
 **Bug Fixes**
