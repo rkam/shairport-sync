@@ -1,3 +1,12 @@
+Version 4.3.4-dev-25-g15a7090a
+==
+**Change**
+* Revert the `session_timeout` to two minutes (120 seconds). In other words, if a player becomes disconnected for more than two minutes while playing, the session is terminated.
+
+**Bug Fixes**
+* Enable the disconnected session timeout for AirPlay 2 operation -- it had been disabled by default.
+* Fix a bug that prevented a fatal error that occured while directly accessing the alsa output device from terminating the application cleanly.
+
 Version 4.3.4-dev-21-g105299a7
 ==
 **Bug Fix**
