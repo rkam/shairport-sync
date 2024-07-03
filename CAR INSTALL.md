@@ -192,8 +192,9 @@ if test $MODE = RUN ; then
 else
 
   # If script execution gets in here, it starts services needed for normal operation.
-  /bin/systemctl start systemd-timesyncd || :
   /bin/systemctl start dhcpcd || /bin/systemctl start NetworkManager || :
+  /bin/sleep 2 # may be necessary while the network becomes available
+  /bin/systemctl start systemd-timesyncd || :
 
 fi
 
