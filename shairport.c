@@ -25,6 +25,8 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include <sys/socket.h>
+#include <sys/types.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <getopt.h>
@@ -35,9 +37,7 @@
 #include <popt.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/socket.h>
 #include <sys/stat.h>
-#include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -1207,8 +1207,8 @@ int parse_options(int argc, char **argv) {
 
     } else {
       if (config_error_type(&config_file_stuff) == CONFIG_ERR_FILE_IO)
-        die("Error reading configuration file \"%s\": \"%s\".",
-              config_file_real_path, config_error_text(&config_file_stuff));
+        die("Error reading configuration file \"%s\": \"%s\".", config_file_real_path,
+            config_error_text(&config_file_stuff));
       else {
         die("Line %d of the configuration file \"%s\":\n%s", config_error_line(&config_file_stuff),
             config_error_file(&config_file_stuff), config_error_text(&config_file_stuff));
@@ -1570,12 +1570,16 @@ const char *pid_file_proc(void) {
 #endif
 
 void exit_rtsp_listener() {
-  pthread_cancel(rtsp_listener_thread);
-  pthread_join(rtsp_listener_thread, NULL); // not sure you need this
+  debug(3, "exit_rtsp_listener begins");
+  if (type_of_exit_cleanup != TOE_emergency) {
+    pthread_cancel(rtsp_listener_thread);
+    pthread_join(rtsp_listener_thread, NULL); // not sure you need this
+  }
+  debug(3, "exit_rtsp_listener ends");
 }
 
 void exit_function() {
-
+  debug(3, "exit_function begins");
   if (type_of_exit_cleanup != TOE_emergency) {
     // the following is to ensure that if libdaemon has been included
     // that most of this code will be skipped when the parent process is exiting
@@ -2039,8 +2043,8 @@ int main(int argc, char **argv) {
   config.debugger_show_file_and_line =
       1; // by default, log the file and line of the originating message
   config.debugger_show_relative_time =
-      1;                // by default, log the  time back to the previous debug message
-  config.timeout = 120; // this number of seconds to wait for [more] audio before switching to idle.
+      1;                // by default, log the time back to the previous debug message
+  config.timeout = 120; // wait this number of seconds to wait for a dropped RTSP connection to come back before declaring it lost.
   config.buffer_start_fill = 220;
 
   config.resync_threshold = 0.050;   // default
@@ -2048,7 +2052,6 @@ int main(int argc, char **argv) {
   config.tolerance = 0.002;
 
 #ifdef CONFIG_AIRPLAY_2
-  config.timeout = 0; // disable watchdog
   config.port = 7000;
 #else
   config.port = 5000;
@@ -2110,12 +2113,9 @@ int main(int argc, char **argv) {
 
 #ifdef COMPILE_FOR_OPENBSD
   /* Any command to be executed at runtime? */
-  int run_cmds =
-    config.cmd_active_start != NULL ||
-    config.cmd_active_stop != NULL ||
-    config.cmd_set_volume != NULL ||
-    config.cmd_start != NULL ||
-    config.cmd_stop != NULL;
+  int run_cmds = config.cmd_active_start != NULL || config.cmd_active_stop != NULL ||
+                 config.cmd_set_volume != NULL || config.cmd_start != NULL ||
+                 config.cmd_stop != NULL;
 #endif
 
   // mDNS supports maximum of 63-character names (we append 13).
@@ -2381,11 +2381,11 @@ int main(int argc, char **argv) {
 #ifdef COMPILE_FOR_OPENBSD
   /* Past first and last sio_open(3), sndio(7) only needs "audio". */
 
-# ifdef CONFIG_METADATA
+#ifdef CONFIG_METADATA
   /* Only coverart cache is created.
    * Only metadata pipe is special. */
   if (!config.metadata_enabled)
-# endif
+#endif
   {
     /* Drop "cpath dpath". */
     if (run_cmds) {

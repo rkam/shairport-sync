@@ -3,7 +3,7 @@
  * Copyright (c) James Laird 2013
 
  * Modifications associated with audio synchronization, multithreading and
- * metadata handling copyright (c) Mike Brady 2014-2023
+ * metadata handling copyright (c) Mike Brady 2014-2024
  * All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person
@@ -430,7 +430,8 @@ int pc_queue_add_item(pc_queue *the_queue, const void *the_stuff, int block) {
     } else
       rc = pthread_mutex_lock(&the_queue->pc_queue_lock);
     if (rc)
-      debug(1, "Error locking for pc_queue_add_item");
+      debug(1, "Error %d (\"%s\") locking for pc_queue_add_item. Block is %d.", rc, strerror(rc),
+            block);
     pthread_cleanup_push(pc_queue_cleanup_handler, (void *)the_queue);
     // leave this out if you want this to return if the queue is already full
     // irrespective of the block flag.
@@ -609,57 +610,6 @@ int get_play_lock(rtsp_conn_info *conn, int allow_session_interruption) {
     debug(3, "Connection %d has principal_conn.", principal_conn->connection_number);
   pthread_cleanup_pop(1); // release the principal_conn lock
   return response;
-}
-
-void player_watchdog_thread_cleanup_handler(void *arg) {
-  rtsp_conn_info *conn = (rtsp_conn_info *)arg;
-  debug(3, "Connection %d: Watchdog Exit.", conn->connection_number);
-}
-
-void *player_watchdog_thread_code(void *arg) {
-  pthread_cleanup_push(player_watchdog_thread_cleanup_handler, arg);
-  rtsp_conn_info *conn = (rtsp_conn_info *)arg;
-  do {
-    usleep(2000000); // check every two seconds
-    // debug(3, "Connection %d: Check the thread is doing something...", conn->connection_number);
-#ifdef CONFIG_AIRPLAY_2
-    if ((config.dont_check_timeout == 0) && (config.timeout != 0) && (conn->airplay_type == ap_1)) {
-#else
-    if ((config.dont_check_timeout == 0) && (config.timeout != 0)) {
-#endif
-      debug_mutex_lock(&conn->watchdog_mutex, 1000, 0);
-      uint64_t last_watchdog_bark_time = conn->watchdog_bark_time;
-      debug_mutex_unlock(&conn->watchdog_mutex, 0);
-      if (last_watchdog_bark_time != 0) {
-        uint64_t time_since_last_bark =
-            (get_absolute_time_in_ns() - last_watchdog_bark_time) / 1000000000;
-        uint64_t ct = config.timeout; // go from int to 64-bit int
-
-        if (time_since_last_bark >= ct) {
-          conn->watchdog_barks++;
-          if (conn->watchdog_barks == 1) {
-            // debuglev = 3; // tell us everything.
-            debug(1,
-                  "Connection %d: As Yeats almost said, \"Too long a silence / can make a stone "
-                  "of the heart\".",
-                  conn->connection_number);
-            conn->stop = 1;
-            pthread_cancel(conn->thread);
-          } else if (conn->watchdog_barks == 3) {
-            if ((config.cmd_unfixable) && (config.unfixable_error_reported == 0)) {
-              config.unfixable_error_reported = 1;
-              command_execute(config.cmd_unfixable, "unable_to_cancel_play_session", 1);
-            } else {
-              die("an unrecoverable error, \"unable_to_cancel_play_session\", has been detected.",
-                  conn->connection_number);
-            }
-          }
-        }
-      }
-    }
-  } while (1);
-  pthread_cleanup_pop(0); // should never happen
-  pthread_exit(NULL);
 }
 
 static void track_thread(rtsp_conn_info *conn) {
@@ -1348,8 +1298,11 @@ enum rtsp_read_request_response rtsp_read_request(rtsp_conn_info *conn, rtsp_mes
         continue;
       }
       if (errno == ETIMEDOUT) {
-        debug(1, "Connection %d: ETIMEDOUT -- keepalive timeout.", conn->connection_number);
-        reply = rtsp_read_request_response_channel_closed;
+        debug(1,
+              "Connection %d: As Yeats almost said, \"Too long a silence / can make a stone "
+              "of the heart\".",
+              conn->connection_number);
+        reply = rtsp_read_request_response_immediate_shutdown_requested;
         // Note: the socket will be closed when the thread exits
         goto shutdown;
       }
@@ -1687,7 +1640,7 @@ void handle_get_info(__attribute((unused)) rtsp_conn_info *conn, rtsp_message *r
               hdr);
       }
     }
-    
+
     // In Stage 1, look for the DACP and Active-Remote
     char *ar = msg_get_header(req, "Active-Remote");
     if (ar) {
@@ -2101,8 +2054,8 @@ void handle_post(rtsp_conn_info *conn, rtsp_message *req, rtsp_message *resp) {
   if (strcmp(req->path, "/feedback") == 0) {
     resp->respcode = 501;
   } else {
-    debug(1, "Connection %d: Airplay 1. Unhandled POST %s Content-Length %d", conn->connection_number,
-          req->path, req->contentlength);
+    debug(1, "Connection %d: Airplay 1. Unhandled POST %s Content-Length %d",
+          conn->connection_number, req->path, req->contentlength);
     debug_log_rtsp_message(2, "POST request", req);
   }
 }
@@ -2115,7 +2068,7 @@ struct pairings {
   uint8_t public_key[32];
 
   struct pairings *next;
-} * pairings;
+} *pairings;
 
 static struct pairings *pairing_find(const char *device_id) {
   for (struct pairings *pairing = pairings; pairing; pairing = pairing->next) {
@@ -3085,7 +3038,7 @@ void handle_setup_2(rtsp_conn_info *conn, rtsp_message *req, rtsp_message *resp)
                 // iap->ifa_name);
                 if ((iap->ifa_addr) && (iap->ifa_netmask) && (iap->ifa_flags & IFF_UP) &&
                     ((iap->ifa_flags & IFF_LOOPBACK) == 0) &&
-		    (config.interface == NULL || (strcmp(config.interface, iap->ifa_name) == 0))) {
+                    (config.interface == NULL || (strcmp(config.interface, iap->ifa_name) == 0))) {
                   char buf[INET6_ADDRSTRLEN + 1]; // +1 for a NUL
                   memset(buf, 0, sizeof(buf));
                   if (iap->ifa_addr->sa_family == AF_INET6) {
@@ -4081,13 +4034,9 @@ void metadata_pack_cleanup_function(void *arg) {
 void metadata_thread_cleanup_function(__attribute__((unused)) void *arg) {
   // debug(2, "metadata_thread_cleanup_function called");
   metadata_close();
-  pc_queue_delete(&metadata_queue);
 }
 
 void *metadata_thread_function(__attribute__((unused)) void *ignore) {
-  // create a pc_queue for passing information to a threaded metadata handler
-  pc_queue_init(&metadata_queue, (char *)&metadata_queue_items, sizeof(metadata_package),
-                metadata_queue_size, "pipe");
   metadata_create_multicast_socket();
   metadata_package pack;
   pthread_cleanup_push(metadata_thread_cleanup_function, NULL);
@@ -4113,13 +4062,9 @@ void *metadata_thread_function(__attribute__((unused)) void *ignore) {
 void metadata_multicast_thread_cleanup_function(__attribute__((unused)) void *arg) {
   // debug(2, "metadata_multicast_thread_cleanup_function called");
   metadata_delete_multicast_socket();
-  pc_queue_delete(&metadata_multicast_queue);
 }
 
 void *metadata_multicast_thread_function(__attribute__((unused)) void *ignore) {
-  // create a pc_queue for passing information to a threaded metadata handler
-  pc_queue_init(&metadata_multicast_queue, (char *)&metadata_multicast_queue_items,
-                sizeof(metadata_package), metadata_multicast_queue_size, "multicast");
   metadata_create_multicast_socket();
   metadata_package pack;
   pthread_cleanup_push(metadata_multicast_thread_cleanup_function, NULL);
@@ -4154,13 +4099,9 @@ void metadata_hub_close(void) {}
 void metadata_hub_thread_cleanup_function(__attribute__((unused)) void *arg) {
   // debug(2, "metadata_hub_thread_cleanup_function called");
   metadata_hub_close();
-  pc_queue_delete(&metadata_hub_queue);
 }
 
 void *metadata_hub_thread_function(__attribute__((unused)) void *ignore) {
-  // create a pc_queue for passing information to a threaded metadata handler
-  pc_queue_init(&metadata_hub_queue, (char *)&metadata_hub_queue_items, sizeof(metadata_package),
-                metadata_hub_queue_size, "hub");
   metadata_package pack;
   pthread_cleanup_push(metadata_hub_thread_cleanup_function, NULL);
   while (1) {
@@ -4188,14 +4129,10 @@ void metadata_mqtt_close(void) {}
 void metadata_mqtt_thread_cleanup_function(__attribute__((unused)) void *arg) {
   // debug(2, "metadata_mqtt_thread_cleanup_function called");
   metadata_mqtt_close();
-  pc_queue_delete(&metadata_mqtt_queue);
   // debug(2, "metadata_mqtt_thread_cleanup_function done");
 }
 
 void *metadata_mqtt_thread_function(__attribute__((unused)) void *ignore) {
-  // create a pc_queue for passing information to a threaded metadata handler
-  pc_queue_init(&metadata_mqtt_queue, (char *)&metadata_mqtt_queue_items, sizeof(metadata_package),
-                metadata_mqtt_queue_size, "mqtt");
   metadata_package pack;
   pthread_cleanup_push(metadata_mqtt_thread_cleanup_function, NULL);
   while (1) {
@@ -4242,24 +4179,39 @@ void metadata_init(void) {
     if ((fd == -1) && (errno != ENXIO)) {
       char errorstring[1024];
       strerror_r(errno, (char *)errorstring, sizeof(errorstring));
-      debug(1, "metadata_hub_thread_function -- error %d (\"%s\") opening pipe: \"%s\".", errno,
+      debug(1, "metadata_init -- error %d (\"%s\") opening pipe: \"%s\".", errno,
             (char *)errorstring, path);
       warn("can not open metadata pipe -- error %d (\"%s\") opening pipe: \"%s\".", errno,
            (char *)errorstring, path);
     }
     free(path);
+
+    // initialise the metadata queues first, otherwise the might be a race condition
+    // create a pc_queue for the metadata pipe
+    pc_queue_init(&metadata_queue, (char *)&metadata_queue_items, sizeof(metadata_package),
+                  metadata_queue_size, "pipe");
+
     if (pthread_create(&metadata_thread, NULL, metadata_thread_function, NULL) != 0)
       debug(1, "Failed to create metadata thread!");
 
+    // create a pc_queue for the metadata_multicast_queue
+    pc_queue_init(&metadata_multicast_queue, (char *)&metadata_multicast_queue_items,
+                  sizeof(metadata_package), metadata_multicast_queue_size, "multicast");
     if (pthread_create(&metadata_multicast_thread, NULL, metadata_multicast_thread_function,
                        NULL) != 0)
       debug(1, "Failed to create metadata multicast thread!");
   }
 #ifdef CONFIG_METADATA_HUB
+  // create a pc_queue for the metadata hub
+  pc_queue_init(&metadata_hub_queue, (char *)&metadata_hub_queue_items, sizeof(metadata_package),
+                metadata_hub_queue_size, "hub");
   if (pthread_create(&metadata_hub_thread, NULL, metadata_hub_thread_function, NULL) != 0)
     debug(1, "Failed to create metadata hub thread!");
 #endif
 #ifdef CONFIG_MQTT
+  // create a pc_queue for the MQTT handler
+  pc_queue_init(&metadata_mqtt_queue, (char *)&metadata_mqtt_queue_items, sizeof(metadata_package),
+                metadata_mqtt_queue_size, "mqtt");
   if (pthread_create(&metadata_mqtt_thread, NULL, metadata_mqtt_thread_function, NULL) != 0)
     debug(1, "Failed to create metadata mqtt thread!");
 #endif
@@ -4273,6 +4225,7 @@ void metadata_stop(void) {
     // debug(2, "metadata stop mqtt thread.");
     pthread_cancel(metadata_mqtt_thread);
     pthread_join(metadata_mqtt_thread, NULL);
+    pc_queue_delete(&metadata_mqtt_queue);
     // debug(2, "metadata stop mqtt done.");
 #endif
 #ifdef CONFIG_METADATA_HUB
@@ -4280,6 +4233,7 @@ void metadata_stop(void) {
     pthread_cancel(metadata_hub_thread);
     pthread_join(metadata_hub_thread, NULL);
     // debug(2, "metadata stop hub done.");
+    pc_queue_delete(&metadata_hub_queue);
 #endif
     if (config.metadata_enabled) {
       // debug(2, "metadata stop multicast thread.");
@@ -4287,12 +4241,14 @@ void metadata_stop(void) {
         pthread_cancel(metadata_multicast_thread);
         pthread_join(metadata_multicast_thread, NULL);
         // debug(2, "metadata stop multicast done.");
+        pc_queue_delete(&metadata_multicast_queue);
       }
       if (metadata_thread) {
         // debug(2, "metadata stop metadata_thread thread.");
         pthread_cancel(metadata_thread);
         pthread_join(metadata_thread, NULL);
         // debug(2, "metadata_stop finished successfully.");
+        pc_queue_delete(&metadata_queue);
       }
     }
   }
@@ -4343,6 +4299,8 @@ int send_metadata_to_queue(pc_queue *queue, uint32_t type, uint32_t code, char *
     if (data)
       pack.data = memdup(data, length); // only if it's not a null
   }
+
+  // debug(1, "send_metadata_to_queue %x/%x", type, code);
   int rc = pc_queue_add_item(queue, &pack, block);
   if (rc != 0) {
     if (pack.carrier) {
@@ -5107,7 +5065,7 @@ void rtsp_conversation_thread_cleanup_function(void *arg) {
   if (conn != NULL) {
     int oldState;
     pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, &oldState);
-    debug(2, "Connection %d: %s rtsp_conversation_thread_func_cleanup_function called.",
+    debug(3, "Connection %d: %s rtsp_conversation_thread_func_cleanup_function called.",
           conn->connection_number, get_category_string(conn->airplay_stream_category));
 #ifdef CONFIG_AIRPLAY_2
     // AP2
@@ -5199,14 +5157,7 @@ void rtsp_conversation_thread_cleanup_function(void *arg) {
     if (rc)
       debug(1, "Connection %d: error %d destroying flush_mutex.", conn->connection_number, rc);
 
-    debug(3, "Cancel watchdog thread.");
-    pthread_cancel(conn->player_watchdog_thread);
-    debug(3, "Join watchdog thread.");
-    pthread_join(conn->player_watchdog_thread, NULL);
-    debug(3, "Delete watchdog mutex.");
-    pthread_mutex_destroy(&conn->watchdog_mutex);
-
-    debug(2, "Connection %d: Closed.", conn->connection_number);
+    debug(3, "Connection %d: Closed.", conn->connection_number);
     conn->running = 0; // for the garbage collector
     pthread_setcancelstate(oldState, NULL);
   }
@@ -5219,11 +5170,6 @@ void msg_cleanup_function(void *arg) {
 
 static void *rtsp_conversation_thread_func(void *pconn) {
   rtsp_conn_info *conn = pconn;
-
-  // create the watchdog mutex, initialise the watchdog time and start the watchdog thread;
-  conn->watchdog_bark_time = get_absolute_time_in_ns();
-  pthread_mutex_init(&conn->watchdog_mutex, NULL);
-  pthread_create(&conn->player_watchdog_thread, NULL, &player_watchdog_thread_code, (void *)conn);
 
   int rc = pthread_mutex_init(&conn->flush_mutex, NULL);
   if (rc)
@@ -5642,43 +5588,61 @@ void *rtsp_listen_loop(__attribute((unused)) void *arg) {
       } else {
         size_of_reply = sizeof(SOCKADDR);
         if (getsockname(conn->fd, (struct sockaddr *)&conn->local, &size_of_reply) == 0) {
+
+          if ((config.dont_check_timeout == 0) && (config.timeout != 0)) {
+// skip this stuff in OpenBSD
 #ifndef COMPILE_FOR_OPENBSD
-          // Thanks to https://holmeshe.me/network-essentials-setsockopt-SO_KEEPALIVE/ for this.
+            // Thanks to https://holmeshe.me/network-essentials-setsockopt-SO_KEEPALIVE/ for this.
 
-          // turn on keepalive stuff -- wait for keepidle + (keepcnt * keepinttvl time) seconds
-          // before giving up an ETIMEOUT error is returned if the keepalive check fails
+            // turn on keepalive stuff -- wait for keepidle + (keepcnt * keepinttvl time) seconds
+            // before giving up an ETIMEOUT error is returned if the keepalive check fails
 
-          int keepAliveIdleTime = 35; // wait this many seconds before checking for a dropped client
-          int keepAliveCount = 5;     // check this many times
-          int keepAliveInterval = 5;  // wait this many seconds between checks
+            // if TCP_KEEPINTVL is defined, check a few times before declaring the line dead
+            // otherwise just wait a little while longer
 
+#ifdef TCP_KEEPINTVL
+            int keepAliveIdleTime =
+                config.timeout -
+                5 * 5;              // wait this many seconds before checking for a dropped client
+            int keepAliveCount = 5; // check this many times
+            int keepAliveInterval = 5; // wait this many seconds between checks
+#else
+            int keepAliveIdleTime =
+                config.timeout; // wait this many seconds before dropping a client
+#endif
+
+// --- the following is a bit  too complicated
+// decide to use IPPROTO_TCP or SOL_TCP
 #if defined COMPILE_FOR_BSD || defined COMPILE_FOR_OSX
 #define SOL_OPTION IPPROTO_TCP
 #else
 #define SOL_OPTION SOL_TCP
 #endif
-
+// decide to use TCP_KEEPALIVE or TCP_KEEPIDLE
 #ifdef COMPILE_FOR_OSX
 #define KEEP_ALIVE_OR_IDLE_OPTION TCP_KEEPALIVE
 #else
 #define KEEP_ALIVE_OR_IDLE_OPTION TCP_KEEPIDLE
 #endif
 
-          if (setsockopt(conn->fd, SOL_OPTION, KEEP_ALIVE_OR_IDLE_OPTION,
-                         (void *)&keepAliveIdleTime, sizeof(keepAliveIdleTime))) {
-            debug(1, "can't set the keepidle wait time");
-          }
-
-          if (setsockopt(conn->fd, SOL_OPTION, TCP_KEEPCNT, (void *)&keepAliveCount,
-                         sizeof(keepAliveCount))) {
-            debug(1, "can't set the keepidle missing count");
-          }
-          if (setsockopt(conn->fd, SOL_OPTION, TCP_KEEPINTVL, (void *)&keepAliveInterval,
-                         sizeof(keepAliveInterval))) {
-            debug(1, "can't set the keepidle missing count interval");
-          };
+            if (setsockopt(conn->fd, SOL_OPTION, KEEP_ALIVE_OR_IDLE_OPTION,
+                           (void *)&keepAliveIdleTime, sizeof(keepAliveIdleTime))) {
+              debug(1, "can't set the keepAliveIdleTime wait time");
+            }
+// ---
+// if TCP_KEEPINTVL is defined...
+#ifdef TCP_KEEPINTVL
+            if (setsockopt(conn->fd, SOL_OPTION, TCP_KEEPCNT, (void *)&keepAliveCount,
+                           sizeof(keepAliveCount))) {
+              debug(1, "can't set the keepAliveCount count");
+            }
+            if (setsockopt(conn->fd, SOL_OPTION, TCP_KEEPINTVL, (void *)&keepAliveInterval,
+                           sizeof(keepAliveInterval))) {
+              debug(1, "can't set the keepAliveCount count interval");
+            };
 #endif
-
+#endif
+          }
           // initialise the connection info
           void *client_addr = NULL, *self_addr = NULL;
           conn->connection_ip_family = conn->local.SAFAMILY;
@@ -5736,8 +5700,8 @@ void *rtsp_listen_loop(__attribute((unused)) void *arg) {
     pthread_cleanup_pop(1); // should never happen
   } else {
     die("could not establish a service on port %d -- program terminating. Is another instance of "
-         "Shairport Sync running on this device?",
-         config.port);
+        "Shairport Sync running on this device?",
+        config.port);
   }
   debug(1, "Oops -- fell out of the RTSP select loop");
   pthread_exit(NULL);
