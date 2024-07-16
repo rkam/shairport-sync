@@ -1,3 +1,8 @@
+Version 4.3.5-dev-3-ge28c566a
+==
+**Bug Fix**
+* Fix a double-free fault introduced by replacing `avcodec_close` with `avcodec_free_context`. It seems as if the context is freed by a subsequent `av_free` anyway... Sigh.
+
 Version 4.3.5-dev-1-g9909bc21
 ==
 **Bug Fix**
