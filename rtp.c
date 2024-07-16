@@ -2094,10 +2094,10 @@ void avcodec_alloc_context3_cleanup_handler(void *arg) {
   av_free(codec_context);
 }
 
-void avcodec_open2_cleanup_handler(void *arg) {
-  debug(3, "avcodec_open2_cleanup_handler");
-  AVCodecContext *codec_context = arg;
-  avcodec_free_context(&codec_context);
+void avcodec_open2_cleanup_handler(__attribute__((unused)) void *arg) {
+  debug(3, "avcodec_open2_cleanup_handler -- does nothing right now");
+  // AVCodecContext *codec_context = arg;
+  // avcodec_free_context(&codec_context);
 }
 
 void av_parser_init_cleanup_handler(void *arg) {
