@@ -1,3 +1,8 @@
+Version 4.3.5-dev-23-g1687b2a4
+==
+**Docker Enhancement**
+* The AirPlay 2 Docker image now incorporates the PipeWire backend. Thanks to [Maxim](https://github.com/irdkwmnsb) for the [PR](https://github.com/mikebrady/shairport-sync/pull/1880).
+  
 Version 4.3.5-dev-6-g597aba0c
 ==
 **Bug Chasing**
