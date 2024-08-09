@@ -1,3 +1,8 @@
+Version 4.3.5-dev-29-g17b134b0
+==
+**PipeWire Enhancement**
+* Initialise the PipeWire backend so that the PipeWire stream is initially inactive.
+
 Version 4.3.5-dev-27-g8e6bd06c
 ==
 **PipeWire Enhancement**
