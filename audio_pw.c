@@ -269,9 +269,9 @@ static int init(__attribute__((unused)) int argc, __attribute__((unused)) char *
   // called in a realtime thread.
   pw_stream_connect(data.stream, PW_DIRECTION_OUTPUT, PW_ID_ANY,
                     PW_STREAM_FLAG_AUTOCONNECT | PW_STREAM_FLAG_MAP_BUFFERS |
-                        PW_STREAM_FLAG_RT_PROCESS,
+                        PW_STREAM_FLAG_RT_PROCESS | PW_STREAM_FLAG_INACTIVE,
                     params, 1);
-  stream_is_active = 1;
+  stream_is_active = 0;
   pw_thread_loop_unlock(data.loop);
   return 0;
 }
