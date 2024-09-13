@@ -3318,6 +3318,13 @@ static void player_send_volume_metadata(bool vol_mode_both, double airplay_volum
       snprintf(dv, 127, "%.2f,%.2f,%.2f,%.2f", airplay_volume, 0.0, 0.0, 0.0);
     }
     send_ssnc_metadata('pvol', dv, strlen(dv), 1);
+#else
+  (void)vol_mode_both;
+  (void)airplay_volume;
+  (void)scaled_attenuation;
+  (void)max_db;
+  (void)min_db;
+  (void)hw_max_db;
 #endif
 }
 
