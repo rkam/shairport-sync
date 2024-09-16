@@ -36,7 +36,6 @@
 #include <math.h>
 #include <pthread.h>
 #include <stdarg.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -3297,7 +3296,7 @@ void *player_thread_func(void *arg) {
   pthread_exit(NULL);
 }
 
-static void player_send_volume_metadata(bool vol_mode_both, double airplay_volume, double scaled_attenuation, int32_t max_db, int32_t min_db, int32_t hw_max_db)
+static void player_send_volume_metadata(uint8_t vol_mode_both, double airplay_volume, double scaled_attenuation, int32_t max_db, int32_t min_db, int32_t hw_max_db)
 {
 #ifdef CONFIG_METADATA
     // here, send the 'pvol' metadata message when the airplay volume information
@@ -3305,7 +3304,7 @@ static void player_send_volume_metadata(bool vol_mode_both, double airplay_volum
     char dv[128];
     memset(dv, 0, 128);
     if (config.ignore_volume_control == 0) {
-      if (vol_mode_both) {
+      if (vol_mode_both == 1) {
         // normalise the maximum output to the hardware device's max output
         snprintf(dv, 127, "%.2f,%.2f,%.2f,%.2f", airplay_volume,
                  (scaled_attenuation - max_db + hw_max_db) / 100.0,
@@ -3417,7 +3416,8 @@ void player_volume_without_notification(double airplay_volume, rtsp_conn_info *c
       }
     }
 
-    player_send_volume_metadata(volume_mode == vol_both, airplay_volume, 0, 0, 0, 0);
+    uint8_t vol_mode_both = (volume_mode == vol_both) ? 1 : 0;
+    player_send_volume_metadata(vol_mode_both, airplay_volume, 0, 0, 0, 0);
   } else {
     int32_t max_db = 0, min_db = 0;
     switch (volume_mode) {
@@ -3528,7 +3528,8 @@ void player_volume_without_notification(double airplay_volume, rtsp_conn_info *c
       inform("Output Level set to: %.2f dB.", scaled_attenuation / 100.0);
     }
 
-    player_send_volume_metadata(volume_mode == vol_both, airplay_volume, scaled_attenuation, max_db, min_db, hw_max_db);
+    uint8_t vol_mode_both = (volume_mode == vol_both) ? 1 : 0;
+    player_send_volume_metadata(vol_mode_both, airplay_volume, scaled_attenuation, max_db, min_db, hw_max_db);
 
     if (config.output->mute)
       config.output->mute(0);
