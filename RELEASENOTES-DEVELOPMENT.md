@@ -3,6 +3,7 @@ Version 4.3.5-dev-44-ge4c2ce4a
 **Enhancements**
 * Add Home Assistant MQTT Auto-Discovery and active/playing State Messages, thanks to [aaronk6](https://github.com/aaronk6).
 * Send `pvol` metadata on mute, thanks to [Tucker Kern](https://github.com/mill1000).
+
 **Bug Fix**
 * Check `swr_init()` and exit if error code found, thanks to [Andrew May](https://github.com/acmay).
 
