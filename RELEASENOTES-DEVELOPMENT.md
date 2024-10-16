@@ -4,7 +4,7 @@ Version 4.3.5-dev-48-gfe743fdf
 * Stop advertising the SFTP and SSH services on Bonjour. Thanks to [https://github.com/jpbaril](https://github.com/jpbaril) for bringing this to notice. 
 
 **Bug Fix**
-* Dues to recent changes in the MQTT client, a compilation error occured when building for Classic Airplay only. Fixed.
+* Due to recent changes in the MQTT client, a compilation error occured when building for Classic Airplay only. Fixed.
 
 Version 4.3.5-dev-44-ge4c2ce4a
 ==
