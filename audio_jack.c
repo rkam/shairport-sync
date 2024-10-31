@@ -88,12 +88,7 @@ soxr_io_spec_t io_spec;
 #endif
 
 static inline sample_t sample_conv(short sample) {
-  // It sounds correct, but I don't understand it.
-  // Zero int needs to be zero float. Check.
-  // Plus 32767 int is 1.0. Check.
-  // Minus 32767 int is -0.99997. And here my brain shuts down.
-  // In my head, it should be 1.0, and we should tolerate an overflow
-  // at minus 32768. But I'm sure there's a textbook explanation somewhere.
+  // signed 16-bit int to float
   return ((sample < 0) ? (-1.0 * sample / SHRT_MIN) : (1.0 * sample / SHRT_MAX));
 }
 
