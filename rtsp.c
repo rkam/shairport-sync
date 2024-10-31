@@ -1179,9 +1179,13 @@ ssize_t timed_read_from_rtsp_connection(rtsp_conn_info *conn, uint64_t wait_time
             read_encrypted(conn->fd, &conn->ap2_pairing_context.control_cipher_bundle, buf, count);
       } else {
         result = read(conn->fd, buf, count);
+        if (result == 0)
+          debug(1, "AP2 read result 0, for a request count of %u.", count);
       }
 #else
       result = read(conn->fd, buf, count);
+      if (result == 0)
+        debug(1, "AP1 read result 0, for a request count of %u.", count);
 #endif
       if (wait_time != 0)
         remaining_time = time_to_wait_to - get_absolute_time_in_ns();
