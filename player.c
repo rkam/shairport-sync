@@ -1179,6 +1179,10 @@ static abuf_t *buffer_get_frame(rtsp_conn_info *conn) {
           if (conn->ab_buffering) {  // if we are getting packets but not yet forwarding them to the
                                      // player
             if (conn->first_packet_timestamp == 0) { // if this is the very first packet
+            
+              if (config.output->prepare_to_play) // tell the player to get ready
+                config.output->prepare_to_play(); // there could be more than one of these sent
+                
               conn->first_packet_timestamp =
                   curframe->given_timestamp; // we will keep buffering until we are
                                              // supposed to start playing this
@@ -2141,9 +2145,10 @@ void *player_thread_func(void *arg) {
   if ((config.output->parameters == NULL) || (conn->input_bit_depth > output_bit_depth) ||
       (config.playback_mode == ST_mono))
     conn->enable_dither = 1;
-
-  // remember, the output device may never have been initialised prior to this call
-  config.output->start(config.output_rate, config.output_format); // will need a corresponding stop
+  
+  // call the backend's start() function if it exists.
+  if (config.output->start != NULL)
+    config.output->start(config.output_rate, config.output_format);
 
   // we need an intermediate "transition" buffer
 
@@ -3291,6 +3296,37 @@ void *player_thread_func(void *arg) {
   pthread_exit(NULL);
 }
 
+static void player_send_volume_metadata(uint8_t vol_mode_both, double airplay_volume, double scaled_attenuation, int32_t max_db, int32_t min_db, int32_t hw_max_db)
+{
+#ifdef CONFIG_METADATA
+    // here, send the 'pvol' metadata message when the airplay volume information
+    // is being used by shairport sync to control the output volume
+    char dv[128];
+    memset(dv, 0, 128);
+    if (config.ignore_volume_control == 0) {
+      if (vol_mode_both == 1) {
+        // normalise the maximum output to the hardware device's max output
+        snprintf(dv, 127, "%.2f,%.2f,%.2f,%.2f", airplay_volume,
+                 (scaled_attenuation - max_db + hw_max_db) / 100.0,
+                 (min_db - max_db + hw_max_db) / 100.0, (max_db - max_db + hw_max_db) / 100.0);
+      } else {
+        snprintf(dv, 127, "%.2f,%.2f,%.2f,%.2f", airplay_volume, scaled_attenuation / 100.0,
+                 min_db / 100.0, max_db / 100.0);
+      }
+    } else {
+      snprintf(dv, 127, "%.2f,%.2f,%.2f,%.2f", airplay_volume, 0.0, 0.0, 0.0);
+    }
+    send_ssnc_metadata('pvol', dv, strlen(dv), 1);
+#else
+  (void)vol_mode_both;
+  (void)airplay_volume;
+  (void)scaled_attenuation;
+  (void)max_db;
+  (void)min_db;
+  (void)hw_max_db;
+#endif
+}
+
 void player_volume_without_notification(double airplay_volume, rtsp_conn_info *conn) {
   debug_mutex_lock(&conn->volume_control_mutex, 5000, 1);
   // first, see if we are hw only, sw only, both with hw attenuation on the top or both with sw
@@ -3379,6 +3415,9 @@ void player_volume_without_notification(double airplay_volume, rtsp_conn_info *c
               volume_mode, airplay_volume);
       }
     }
+
+    uint8_t vol_mode_both = (volume_mode == vol_both) ? 1 : 0;
+    player_send_volume_metadata(vol_mode_both, airplay_volume, 0, 0, 0, 0);
   } else {
     int32_t max_db = 0, min_db = 0;
     switch (volume_mode) {
@@ -3489,26 +3528,8 @@ void player_volume_without_notification(double airplay_volume, rtsp_conn_info *c
       inform("Output Level set to: %.2f dB.", scaled_attenuation / 100.0);
     }
 
-#ifdef CONFIG_METADATA
-    // here, send the 'pvol' metadata message when the airplay volume information
-    // is being used by shairport sync to control the output volume
-    char dv[128];
-    memset(dv, 0, 128);
-    if (config.ignore_volume_control == 0) {
-      if (volume_mode == vol_both) {
-        // normalise the maximum output to the hardware device's max output
-        snprintf(dv, 127, "%.2f,%.2f,%.2f,%.2f", airplay_volume,
-                 (scaled_attenuation - max_db + hw_max_db) / 100.0,
-                 (min_db - max_db + hw_max_db) / 100.0, (max_db - max_db + hw_max_db) / 100.0);
-      } else {
-        snprintf(dv, 127, "%.2f,%.2f,%.2f,%.2f", airplay_volume, scaled_attenuation / 100.0,
-                 min_db / 100.0, max_db / 100.0);
-      }
-    } else {
-      snprintf(dv, 127, "%.2f,%.2f,%.2f,%.2f", airplay_volume, 0.0, 0.0, 0.0);
-    }
-    send_ssnc_metadata('pvol', dv, strlen(dv), 1);
-#endif
+    uint8_t vol_mode_both = (volume_mode == vol_both) ? 1 : 0;
+    player_send_volume_metadata(vol_mode_both, airplay_volume, scaled_attenuation, max_db, min_db, hw_max_db);
 
     if (config.output->mute)
       config.output->mute(0);
