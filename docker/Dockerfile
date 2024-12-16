@@ -1,11 +1,7 @@
-FROM alpine:3.17 AS builder
+ARG NQPTP_BRANCH=main
+ARG SHAIRPORT_SYNC_BRANCH=.
 
-# Check required arguments exist. These will be provided by the Github Action
-# Workflow and are required to ensure the correct branches are being used.
-ARG SHAIRPORT_SYNC_BRANCH
-RUN test -n "$SHAIRPORT_SYNC_BRANCH"
-ARG NQPTP_BRANCH
-RUN test -n "$NQPTP_BRANCH"
+FROM alpine:3.17 AS builder
 
 RUN apk -U add \
         alsa-lib-dev \
@@ -31,7 +27,8 @@ RUN apk -U add \
         xxd
 
 ##### ALAC #####
-RUN git clone https://github.com/mikebrady/alac
+FROM builder AS alac
+RUN git clone --depth=1 https://github.com/mikebrady/alac
 WORKDIR /alac
 RUN autoreconf -i
 RUN ./configure
@@ -41,9 +38,10 @@ WORKDIR /
 ##### ALAC END #####
 
 ##### NQPTP #####
-RUN git clone https://github.com/mikebrady/nqptp
+FROM builder AS nqptp
+ARG NQPTP_BRANCH
+RUN git clone --depth=1 -b "$NQPTP_BRANCH" https://github.com/mikebrady/nqptp
 WORKDIR /nqptp
-RUN git checkout "$NQPTP_BRANCH"
 RUN autoreconf -i
 RUN ./configure
 RUN make
@@ -51,6 +49,10 @@ WORKDIR /
 ##### NQPTP END #####
 
 ##### SPS #####
+# Note: apple-alac requires alac build first.
+FROM alac AS shairport-sync
+ARG SHAIRPORT_SYNC_BRANCH
+
 WORKDIR /shairport-sync
 COPY . .
 RUN git checkout "$SHAIRPORT_SYNC_BRANCH"
@@ -96,14 +98,14 @@ RUN apk -U add \
         soxr
 
 # Copy build files.
-COPY --from=builder /shairport-sync/build/install/usr/local/bin/shairport-sync /usr/local/bin/shairport-sync
-COPY --from=builder /shairport-sync/build/install/usr/local/share/man/man1 /usr/share/man/man1
-COPY --from=builder /nqptp/nqptp /usr/local/bin/nqptp
-COPY --from=builder /usr/local/lib/libalac.* /usr/local/lib/
-COPY --from=builder /shairport-sync/build/install/etc/shairport-sync.conf /etc/
-COPY --from=builder /shairport-sync/build/install/etc/shairport-sync.conf.sample /etc/
-COPY --from=builder /shairport-sync/build/install/etc/dbus-1/system.d/shairport-sync-dbus.conf /etc/dbus-1/system.d/
-COPY --from=builder /shairport-sync/build/install/etc/dbus-1/system.d/shairport-sync-mpris.conf /etc/dbus-1/system.d/
+COPY --from=shairport-sync /shairport-sync/build/install/usr/local/bin/shairport-sync /usr/local/bin/shairport-sync
+COPY --from=shairport-sync /shairport-sync/build/install/usr/local/share/man/man1 /usr/share/man/man1
+COPY --from=nqptp /nqptp/nqptp /usr/local/bin/nqptp
+COPY --from=alac /usr/local/lib/libalac.* /usr/local/lib/
+COPY --from=shairport-sync /shairport-sync/build/install/etc/shairport-sync.conf /etc/
+COPY --from=shairport-sync /shairport-sync/build/install/etc/shairport-sync.conf.sample /etc/
+COPY --from=shairport-sync /shairport-sync/build/install/etc/dbus-1/system.d/shairport-sync-dbus.conf /etc/dbus-1/system.d/
+COPY --from=shairport-sync /shairport-sync/build/install/etc/dbus-1/system.d/shairport-sync-mpris.conf /etc/dbus-1/system.d/
 
 COPY ./docker/etc/s6-overlay/s6-rc.d /etc/s6-overlay/s6-rc.d
 COPY ./docker/etc/pulse /etc/pulse
