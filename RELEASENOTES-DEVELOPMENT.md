@@ -1,6 +1,7 @@
 Version 4.3.6-dev-9-gf7401ec7
 ==
 **Docker Build Optimisation**
+
 Improve the Dockerfile build sequences as follows:
 1. Build each dependency in a separate stage, facilitating parallel builds.
 2. Define default value for ARGS, permitting easier local docker builds.
