@@ -124,7 +124,8 @@ RUN apk -U add \
     adduser -D shairport-sync -G shairport-sync && \
     addgroup -g 29 docker_audio && \
     addgroup shairport-sync docker_audio && \
-    addgroup shairport-sync audio
+    addgroup shairport-sync audio && \
+    mkdir -p /run/dbus
 
 # Remove anything we don't need.
 # Remove any statically-defined Avahi services, e.g. SSH and SFTP
