@@ -1,3 +1,8 @@
+Version 4.3.6-dev-13-g00e595ce
+==
+**Docker Build Optimistion**
+Ensure the `/run/dbus` directory, needed for dbus to start, is defined.
+
 Version 4.3.6-dev-9-gf7401ec7
 ==
 **Docker Build Optimisation**
