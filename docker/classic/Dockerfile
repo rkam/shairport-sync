@@ -18,7 +18,7 @@ RUN apk -U add \
         libconfig-dev \
         libsndfile-dev \
         libtool \
-        mbedtls-dev \
+        openssl-dev \
         mosquitto-dev \
         popt-dev \
         pulseaudio-dev \
@@ -40,7 +40,7 @@ COPY . .
 RUN git checkout "$SHAIRPORT_SYNC_BRANCH"
 WORKDIR /shairport-sync/build
 RUN autoreconf -i ../
-RUN CFLAGS="-O3" CXXFLAGS="-O3" ../configure --sysconfdir=/etc --with-alsa --with-pa --with-soxr --with-avahi --with-ssl=mbedtls \
+RUN CFLAGS="-O3" CXXFLAGS="-O3" ../configure --sysconfdir=/etc --with-alsa --with-pa --with-soxr --with-avahi --with-ssl=openssl \
         --with-metadata --with-dummy --with-pipe --with-dbus-interface \
         --with-stdout --with-mpris-interface --with-mqtt-client \
         --with-apple-alac --with-convolution
@@ -68,7 +68,7 @@ RUN apk -U add \
         libpulse \
         man-pages \
         mandoc \
-        mbedtls \
+        libcrypto3 \
         mosquitto \
         popt \
         soxr
