@@ -71,7 +71,8 @@ RUN apk -U add \
         mbedtls \
         mosquitto \
         popt \
-        soxr
+        soxr \
+        curl
 
 # Copy build files.
 COPY --from=builder /shairport-sync/build/install/usr/local/bin/shairport-sync /usr/local/bin/shairport-sync
