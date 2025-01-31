@@ -1,3 +1,8 @@
+Version 4.3.7-dev-24-gbc5001eb
+==
+**Dependabot Updates**
+* A number of deferred Dependabot-originated updates have been accepted. They all relate to (limited) automated testing and Docker image creation.
+  
 Version 4.3.7-dev-11-g7367d042
 ==
 **Automated Docker Build Fixes**
