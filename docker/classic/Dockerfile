@@ -1,4 +1,6 @@
-FROM alpine:3.17 AS builder
+ARG SHAIRPORT_SYNC_BRANCH=.
+
+FROM alpine:3.20 AS builder
 
 # Classic (aka AirPlay 1) Build
 
@@ -29,7 +31,7 @@ RUN git clone https://github.com/mikebrady/alac
 WORKDIR /alac
 RUN autoreconf -i
 RUN ./configure
-RUN make
+RUN make -j $(nproc)
 RUN make install
 WORKDIR /
 ##### ALAC END #####
@@ -50,7 +52,7 @@ WORKDIR /
 ##### SPS END #####
 
 # Shairport Sync Runtime System
-FROM crazymax/alpine-s6:3.17-3.1.1.2
+FROM crazymax/alpine-s6:3.20-3.2.0.2
 
 ENV S6_CMD_WAIT_FOR_SERVICES=1
 ENV S6_CMD_WAIT_FOR_SERVICES_MAXTIME=0
@@ -71,7 +73,8 @@ RUN apk -U add \
         libcrypto3 \
         mosquitto \
         popt \
-        soxr
+        soxr \
+        curl
 
 # Copy build files.
 COPY --from=builder /shairport-sync/build/install/usr/local/bin/shairport-sync /usr/local/bin/shairport-sync
