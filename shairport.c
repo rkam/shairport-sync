@@ -2165,7 +2165,7 @@ int main(int argc, char **argv) {
 #ifdef CONFIG_LIBDAEMON
   /* If we are going to daemonise, check that the daemon is not running already.*/
   if ((config.daemonise) && ((pid = daemon_pid_file_is_running()) >= 0)) {
-    warn("The %s deamon is already running with process ID (PID) %u.", config.appName, pid);
+    warn("The %s daemon is already running with process ID (PID) %u.", config.appName, pid);
     // daemon_log(LOG_ERR, "The %s daemon is already running as PID %u", config.appName, pid);
     return 1;
   }
